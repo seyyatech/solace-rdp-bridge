@@ -123,9 +123,9 @@ in the order it happens:
      broker instead.
 
 Every log line at every step above carries the message ID, target, and whether the message was
-redelivered; see [`samples/metrics-and-logging`](../samples/metrics-and-logging/) for how to
-observe this directly, and [`samples/resilient-delivery`](../samples/resilient-delivery/) for
-this whole sequence, including the circuit tripping and recovering, run against a real broker.
+redelivered; see [`bridge/README.md`](../bridge/README.md) for how to read these logs (and enable
+the matching Prometheus metrics), and [`samples/resilient-delivery`](../samples/resilient-delivery/)
+for this whole sequence, including the circuit tripping and recovering, run against a real broker.
 
 ## Deployment shape
 

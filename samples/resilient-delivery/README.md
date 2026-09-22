@@ -130,6 +130,12 @@ The `Solace-DMQ-Eligible: true` header is required here: Solace's REST messaging
 doesn't mark published messages DMQ-eligible by default, so without it a permanent rejection is
 silently discarded instead of landing in the dead message queue.
 
+## Metrics
+
+This sample's `docker-config.toml` ships the Prometheus metrics config too, commented out.
+Uncomment it and `docker compose restart bridge` to see delivery outcomes as counters at
+`:9797/metrics`; see [`../../bridge/README.md`](../../bridge/README.md) for what they measure.
+
 ## Tear down
 
 ```bash

@@ -25,3 +25,13 @@ circuitBreakerFailureThreshold = 0.5
 circuitBreakerResetTime = 20
 
 circuitOpenNackDelay = 1
+
+# Prometheus-style metrics - uncomment to expose them at :9797/metrics. See
+# ../../bridge/README.md's Metrics section.
+# [ballerina.observe]
+# metricsEnabled = true
+# metricsReporter = "prometheus"
+#
+# [ballerinax.prometheus]
+# port = 9797
+# host = "0.0.0.0"

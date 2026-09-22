@@ -34,7 +34,7 @@ create "REST Delivery Point $RDP" \
 
 create "REST consumer $RDP_CONSUMER" \
   "msgVpns/$VPN/restDeliveryPoints/$RDP/restConsumers" \
-  "{\"restConsumerName\":\"$RDP_CONSUMER\",\"remoteHost\":\"mock-target\",\"remotePort\":8080,\"tlsEnabled\":false,\"enabled\":true,\"retryDelay\":20}"
+  "{\"restConsumerName\":\"$RDP_CONSUMER\",\"remoteHost\":\"mock-target\",\"remotePort\":8080,\"tlsEnabled\":false,\"enabled\":true,\"retryDelay\":5}"
 
 create "queue binding $RDP_QUEUE -> $RDP" \
   "msgVpns/$VPN/restDeliveryPoints/$RDP/queueBindings" \

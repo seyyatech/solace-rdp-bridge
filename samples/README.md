@@ -13,7 +13,6 @@ names and ports.
 | [`multi-target-routing`](multi-target-routing/) | Two independent queue-to-target routes from one running bridge |
 | [`basic-auth`](basic-auth/) | Authenticating to a target that requires HTTP Basic credentials |
 | [`oauth2-client-credentials`](oauth2-client-credentials/) | Token acquisition, caching, and transparent refresh |
-| [`metrics-and-logging`](metrics-and-logging/) | Observing delivery outcomes via Prometheus-style counters and correlatable logs (builds on `resilient-delivery`) |
 
 New to the project? Start with [`../docs/problem-and-solution.md`](../docs/problem-and-solution.md)
 for what this replaces and why, and [`../docs/architecture.md`](../docs/architecture.md) for how
@@ -38,10 +37,11 @@ the bridge itself works, then pick whichever sample matches what you're trying t
    docker compose down --remove-orphans   # tear down when done
    ```
 
-   [`metrics-and-logging`](metrics-and-logging/) is the one exception: it builds directly on
-   `resilient-delivery`'s running stack instead of shipping its own, so set that sample up first.
-
 Only run one sample's stack at a time; they share container names and ports.
+
+Metrics and structured logs aren't a separate sample: every sample's `docker-config.toml` ships
+the Prometheus config commented out, ready to enable on top of whichever scenario you're already
+running. See [`../bridge/README.md`](../bridge/README.md) for what they measure and how.
 
 ## Moving from a sample to your own deployment
 

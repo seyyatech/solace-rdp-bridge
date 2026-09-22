@@ -79,3 +79,15 @@ circuitBreakerResetTime = 20
 # backoff of its own - without this floor, an open circuit and instant redelivery combine into a
 # busy loop against the broker itself.
 circuitOpenNackDelay = 1
+
+# Prometheus-style metrics. The bridge always registers its three counters
+# (bridge_delivery_success_total, bridge_delivery_failure_total, bridge_circuit_open_total), but
+# exposing them at /metrics needs the reporter enabled explicitly - uncomment to turn it on. See
+# bridge/README.md's Metrics section.
+# [ballerina.observe]
+# metricsEnabled = true
+# metricsReporter = "prometheus"
+#
+# [ballerinax.prometheus]
+# port = 9797
+# host = "0.0.0.0"

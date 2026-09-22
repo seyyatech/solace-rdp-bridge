@@ -225,7 +225,7 @@ function transformPayload(anydata payload) returns map<json>|error {
 // covers every nack, whichever branch reached it (transformation failure, a 4xx from the target,
 // or exhausted retries); circuit-open gets its own counter since it means the target was never
 // even called - a meaningfully different outcome from a call that was made and failed. See
-// samples/metrics-and-logging for how to scrape these.
+// bridge/README.md's Metrics section for how to scrape these.
 final observe:Counter deliverySuccessCounter = new ("bridge_delivery_success_total",
         desc = "Messages successfully delivered and acked");
 final observe:Counter deliveryFailureCounter = new ("bridge_delivery_failure_total",

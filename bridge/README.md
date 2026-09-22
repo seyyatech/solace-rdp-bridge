@@ -108,6 +108,59 @@ both are answering "was this a transient problem with the target?"):
 |---|---|---|---|
 | `transientStatusCodes` | `[500, 502, 503, 504, 507, 508, 509]` | Optional | Status codes treated as transient. A 4xx is deliberately excluded: it's a permanent rejection, so it neither retries nor counts against target health |
 
+## Metrics
+
+The bridge always registers three Prometheus-style counters (`bridge_delivery_success_total`,
+`bridge_delivery_failure_total`, `bridge_circuit_open_total`), but exposing them at `/metrics`
+needs the Prometheus reporter enabled explicitly; it's off by default. Add this to your
+`Config.toml` (or `docker-config.toml`):
+
+```toml
+[ballerina.observe]
+metricsEnabled = true
+metricsReporter = "prometheus"
+
+[ballerinax.prometheus]
+port = 9797
+host = "0.0.0.0"
+```
+
+Restart the bridge (`docker compose restart bridge` for a container, or re-run `bal run`
+directly) and confirm it's live:
+
+```bash
+curl -s http://localhost:9797/metrics | grep bridge_delivery
+```
+
+```
+bridge_delivery_success_total_value 0.0
+bridge_delivery_failure_total_value 0.0
+bridge_circuit_open_total_value 0.0
+```
+
+The three counters are mutually exclusive per message, so together they total every delivery
+this bridge instance has handled. Every sample under `../samples/` ships this same config,
+already present but commented out, in its `docker-config.toml`: uncomment it and restart to try
+it against that sample's scenario.
+
+## Structured logs
+
+Every log line the bridge writes during a delivery carries the same three fields:
+
+```
+message="received" messageId="W-1" redelivered=false
+message="forwarding to target" messageId="W-1" target="http://mock-target:8080/deliver" redelivered=false
+message="delivered" messageId="W-1" target="http://mock-target:8080/deliver" redelivered=false statusCode=200
+message="acked" messageId="W-1" redelivered=false
+```
+
+`messageId` (set by the publisher via Solace's `Solace-Message-ID` REST header) lets you trace
+one message's whole journey by filtering on it; `target` tells you which route/target was
+involved without needing to know it from context; `redelivered` distinguishes a first delivery
+attempt from the broker retrying a `nack(requeue=true)` (it says nothing about whether that
+delivery succeeded). That's enough to root-cause a specific failed delivery from the bridge's own
+logs alone, no broker log needed.
+
 ## Running it directly
 
 ```bash

@@ -1,0 +1,10 @@
+[package]
+org = "solace_rdp_plus"
+name = "bridge"
+version = "0.1.0"
+
+# Required for observe:Counter increments to actually reach the metrics registry - without this,
+# registration and the /metrics listing both look correct, but every counter stays frozen at 0
+# regardless of real activity.
+[build-options]
+observabilityIncluded = true

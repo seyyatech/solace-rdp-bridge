@@ -70,7 +70,7 @@ setup and test instructions.
 | Multi-target routing | Two independent queue-to-target routes from one running bridge | [`samples/multi-target-routing`](../samples/multi-target-routing/) |
 | Basic auth | Authenticating to a target that requires HTTP Basic credentials | [`samples/basic-auth`](../samples/basic-auth/) |
 | OAuth2 client-credentials | Token acquisition, caching, and transparent refresh | [`samples/oauth2-client-credentials`](../samples/oauth2-client-credentials/) |
-| Metrics and structured logs | Observing delivery outcomes via Prometheus-style counters and correlatable logs | [`samples/metrics-and-logging`](../samples/metrics-and-logging/) |
+| Metrics and structured logs | Observing delivery outcomes via Prometheus-style counters and correlatable logs | Config layered onto any sample; see [`bridge/README.md`](../bridge/README.md) |
 
 See [`architecture.md`](architecture.md) for how the bridge itself is put together, with
 sequence diagrams for the delivery flow.

@@ -117,4 +117,7 @@ bal run
 ```
 
 Or as a container: see any sample under `../samples/` for a complete, working
-`docker-compose.yaml` that builds this folder and wires it up to a broker and a target.
+`docker-compose.yaml` that builds this folder and wires it up to a broker and a target. Each
+sample's `docker-compose.yaml` doubles as a starting template for your own deployment: point its
+`docker-config.toml` at your real broker/target, then edit the compose file to remove the
+`mock-target` service and its entry in the `bridge` service's `depends_on`.

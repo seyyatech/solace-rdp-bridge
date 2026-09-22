@@ -1,0 +1,35 @@
+services:
+  solace:
+    image: 'solace/solace-pubsub-standard:latest'
+    container_name: solace-broker
+    ports:
+      - '55554:55555'  # SMF (Solace Message Format) - default messaging
+      - '8080:8080'    # SEMP (Solace Element Management Protocol) management API/UI
+    environment:
+      - username_admin_globalaccesslevel=admin
+      - username_admin_password=admin
+    shm_size: 1g
+    ulimits:
+      nofile:
+        soft: 2448
+        hard: 1048576
+
+  mock-target:
+    build: ./mock-target
+    container_name: resilient-delivery-mock-target
+    ports:
+      - '8081:8080'
+
+  bridge:
+    build: ../../bridge
+    container_name: resilient-delivery-bridge
+    ports:
+      - '9797:9797'  # Prometheus /metrics endpoint
+    volumes:
+      # Bind-mounted, not just baked in at build time, so editing this file and running
+      # `docker compose restart bridge` (no --build) picks up a config change immediately.
+      - ./docker-config.toml:/app/Config.toml:ro
+    depends_on:
+      - solace
+      - mock-target
+    restart: on-failure  # the queue must be provisioned (init/setup.sh) before the bridge can bind to it

@@ -1,0 +1,81 @@
+# Reference of every configurable value service.bal exposes, with its default. Copy to Config.toml
+# and adjust to override any of them - each sample under samples/ ships its own complete
+# Config.toml (or docker-config.toml, bind-mounted) tuned to that sample's scenario, so you
+# generally won't start from this file directly; it's here as the full reference and for running
+# the bridge directly (e.g. `bal run`) against a broker/target of your own.
+[solace_rdp_plus.bridge]
+brokerUrl = "tcp://localhost:55554"
+messageVpn = "default"
+username = "admin"
+password = "admin"
+
+# Route 1 - which queue to consume and where to deliver. targetUrl is the *full* URL including
+# path. targetHeaders are static headers attached to every request, in addition to the
+# data-driven X-Event-Type/X-Correlation-Id headers set from the payload.
+#
+# Header names must be bare TOML keys (e.g. `X-Api-Key = "demo-key"`) - a quoted key like
+# `"X-Api-Key" = ...` is parsed with the literal quote characters included in the header name and
+# fails at request time.
+queueName = "bridge-demo-queue"
+targetUrl = "http://localhost:8081/deliver"
+targetHeaders = { }
+# Example: targetHeaders = { X-Api-Key = "demo-key" }
+
+# Route 1's HTTP Basic auth credentials - optional. Leave targetUsername empty to send no
+# Authorization header at all.
+targetUsername = ""
+targetPassword = ""
+
+# Route 1's OAuth2 client-credentials - an alternative to Basic above, not stacked with it (OAuth2
+# wins if both are set). Leave targetOAuth2TokenUrl empty to disable OAuth2 for this route.
+# targetOAuth2Scopes is optional - leave it empty to request the token endpoint's default scopes.
+targetOAuth2TokenUrl = ""
+targetOAuth2ClientId = ""
+targetOAuth2ClientSecret = ""
+targetOAuth2Scopes = []
+
+# Route 2 - a second, independent queue-to-target route from this same bridge instance, configured
+# the same way as route 1.
+queueName2 = "bridge-demo-queue-2"
+targetUrl2 = "http://localhost:8081/deliver2"
+targetHeaders2 = { }
+targetUsername2 = ""
+targetPassword2 = ""
+targetOAuth2TokenUrl2 = ""
+targetOAuth2ClientId2 = ""
+targetOAuth2ClientSecret2 = ""
+targetOAuth2Scopes2 = []
+
+# Retry + backoff, applied per delivery attempt by the http:Client. requestTimeout is per-attempt
+# (a slower response counts as a timeout failure, retried like a 5xx). retryCount is *additional*
+# attempts after the first - 3 means up to 4 total tries - with the interval growing by
+# retryBackOffFactor each time, capped at retryMaxWaitInterval.
+requestTimeout = 5
+retryCount = 3
+retryInterval = 1
+retryBackOffFactor = 2.0
+retryMaxWaitInterval = 10
+
+# Status codes treated as transient - shared by retry (above) and the circuit breaker (below),
+# since both are answering "was this a target-health problem?" A 4xx is deliberately excluded from
+# both: it's a permanent rejection, so it neither retries nor counts against target health.
+transientStatusCodes = [500, 502, 503, 504, 507, 508, 509]
+
+# Circuit breaker, wrapping the retry-enabled client above. requestVolumeThreshold is the minimum
+# number of *final* (post-retry) outcomes required in the rolling time window before the breaker
+# will even consider tripping; failureThreshold is the failure ratio (0-1) that trips it once that
+# minimum is met; resetTime is how long it stays open before a single trial call decides whether to
+# close again. Size bucketSize/timeWindow with real margin over how long a single failed attempt
+# actually takes in your environment - too-small buckets can rotate a failure out before enough
+# accumulate together, and the breaker silently never trips.
+circuitBreakerRequestVolumeThreshold = 3
+circuitBreakerTimeWindow = 120
+circuitBreakerBucketSize = 30
+circuitBreakerFailureThreshold = 0.5
+circuitBreakerResetTime = 20
+
+# How long the bridge itself pauses before nacking(requeue=true) while the circuit is open. The
+# breaker makes the *target* stop getting hammered, but the broker still redelivers with no
+# backoff of its own - without this floor, an open circuit and instant redelivery combine into a
+# busy loop against the broker itself.
+circuitOpenNackDelay = 1

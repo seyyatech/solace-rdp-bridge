@@ -5,7 +5,7 @@
 "Outbound" and "inbound" here are relative to the **Solace broker**, not to any particular
 application:
 
-- **Outbound (REST Delivery Point, what this project replaces)**: the broker itself *initiates*
+- **Outbound (REST Delivery Point, what this project extends)**: the broker itself *initiates*
   an HTTP request. A message lands on a queue, and an RDP pushes it *out* to an external REST
   endpoint via POST/PUT. The broker is the HTTP client; the target system is the HTTP server.
   This bridge sits in this same slot, a drop-in alternative to an RDP, not to REST messaging.
@@ -71,7 +71,7 @@ sequenceDiagram
     participant T as Target REST endpoint
 
     Q->>B: 1. deliver message (SMF, CLIENT_ACK)
-    Note over B: transform payload - field/header mapping + enrichment
+    Note over B: transform payload - config-driven field/header mapping + enrichment
     alt transformation failed (not a parseable JSON object)
         B--)Q: 4. nack(requeue=false) - routed to the DMQ, no call to the target at all
     else circuit open
@@ -97,8 +97,11 @@ Left to right above is broker, bridge, target; every solid arrow is a real netwo
 in the order it happens:
 
 1. **Broker → bridge**: the queue delivers the message over SMF. The bridge transforms the
-   payload immediately after (no network hop). A payload that fails to parse here nacks straight
-   to the DMQ; nothing else below happens for that message.
+   payload immediately after (no network hop) - config-driven (renames, static/timestamp
+   enrichment, header promotion; see `bridge/README.md`'s Payload transformation section), not
+   hardcoded, so changing the mapping is a config edit and a restart, not a rebuild. A payload
+   that fails to parse here nacks straight to the DMQ; nothing else below happens for that
+   message.
 2. **Bridge → target**: the bridge POSTs the *transformed* payload, with the mapped headers,
    possibly more than once, and only if the circuit is closed (or half-open and due its one
    trial). Steps 2–3 repeat inside the `http:Client`'s own retry loop entirely before the bridge's
@@ -117,10 +120,10 @@ in the order it happens:
    - **Still failing after every attempt, or the circuit was already open** → `nack(requeue=true)`
      (dotted, loops back rather than ending): the broker redelivers it. Once enough of these
      accumulate, the circuit trips: further deliveries skip straight to this branch with no call
-     to the target at all, protecting it from exactly the kind of hammering an RDP does. It
-     doesn't stop the broker's own (backoff-less) redelivery loop, though; the bridge adds its
-     own small pause here too, or the loop just moves from hammering the target to hammering the
-     broker instead.
+     to the target at all, protecting it from the same kind of fixed-rate retrying RDP does by
+     default. It doesn't stop the broker's own (backoff-less) redelivery loop, though; the bridge
+     adds its own small pause here too, or the loop just moves from retrying the target to
+     retrying the broker instead.
 
 Every log line at every step above carries the message ID, target, and whether the message was
 redelivered; see [`bridge/README.md`](../bridge/README.md) for how to read these logs (and enable

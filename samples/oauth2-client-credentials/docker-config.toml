@@ -4,21 +4,10 @@
 queueName = "bridge-demo-queue"
 targetUrl = "http://mock-target:8080/deliver"
 targetHeaders = { }
+targetOAuth2TokenUrl = "http://mock-target:8080/oauth2/token"
+targetOAuth2ClientId = "demo-client"
+targetOAuth2ClientSecret = "demo-secret2"
 
-# Demo-friendly retry/circuit-breaker values - a few seconds total, not production tuning.
-requestTimeout = 5
-retryCount = 3
-retryInterval = 1
-retryBackOffFactor = 2.0
-retryMaxWaitInterval = 10
-
-circuitBreakerRequestVolumeThreshold = 3
-circuitBreakerTimeWindow = 120
-circuitBreakerBucketSize = 30
-circuitBreakerFailureThreshold = 0.5
-circuitBreakerResetTime = 20
-
-circuitOpenNackDelay = 1
 
 # Prometheus-style metrics - uncomment to expose them at :9797/metrics. See
 # ../../bridge/README.md's Metrics section.

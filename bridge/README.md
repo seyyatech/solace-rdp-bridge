@@ -1,11 +1,11 @@
-# bridge
+# Bridge
 
-The Ballerina service that is the actual product: it subscribes to one or more Solace queues and
-delivers each message to a configured HTTP target, replacing what a Solace REST Delivery Point
-(RDP) does, with the resilience RDP doesn't provide. See
-[`../docs/problem-and-solution.md`](../docs/problem-and-solution.md) for the case against RDP and
-[`../docs/architecture.md`](../docs/architecture.md) for how the pieces below fit together,
-including sequence diagrams.
+The Ballerina service that is the actual product: it subscribes to a Solace queue and delivers
+each message to a configured HTTP target, sitting in the same slot as a Solace REST Delivery
+Point (RDP), extended with application-level retry/circuit-breaking, transformation, and logging.
+See [`../docs/problem-and-solution.md`](../docs/problem-and-solution.md) for when to reach beyond
+RDP and [`../docs/architecture.md`](../docs/architecture.md) for how the pieces below fit
+together, including sequence diagrams.
 
 ## What it does
 
@@ -14,16 +14,14 @@ including sequence diagrams.
   5xx, a timeout, or a request-level error retries, then nacks with a requeue if every attempt
   fails.
 - **Retry with backoff and a circuit breaker**, per target: a struggling target gets protected
-  instead of hammered at a fixed rate.
+  instead of retried at a fixed rate indefinitely.
 - **Structured logs**: every log line carries the message ID, the target, and whether the
   message was redelivered, so a failed delivery is root-causable from the bridge's own logs.
 - **Payload transformation**: a fixed field/header mapping and enrichment, applied before
   delivery.
 - **Prometheus-style metrics**: success/failure/circuit-open counters at `/metrics`.
-- **Two independent, config-driven routes**: a distinct queue-to-target mapping per route, each
-  reconfigurable without a rebuild.
-- **HTTP Basic and OAuth2 client-credentials auth**, per route: OAuth2 handles token acquisition,
-  caching, and transparent refresh on its own.
+- **HTTP Basic and OAuth2 client-credentials auth**: OAuth2 handles token acquisition, caching,
+  and transparent refresh on its own.
 
 Every one of these is demonstrated in isolation, with a working setup and test steps, under
 [`../samples/`](../samples/).
@@ -36,9 +34,6 @@ tables below group every key by what it controls; see
 ready to copy from. Each sample under `../samples/` ships its own `Config.toml` (or
 `docker-config.toml`, bind-mounted for a no-rebuild config edit) tuned to that sample's scenario,
 built against this same, unmodified `bridge` image.
-
-Keys are listed once, for route 1. Route 2 is configured the same way, independently, using the
-same keys with a `2` suffix (e.g. `targetUrl` / `targetUrl2`).
 
 Every key already has a default, so nothing below is required for the bridge to start, but the
 **Required** column distinguishes keys you need to set to a real value for the bridge to do
@@ -60,7 +55,18 @@ half-configured.
 |---|---|---|---|
 | `queueName` | `bridge-demo-queue` | Required | Queue this route consumes from |
 | `targetUrl` | `http://localhost:8081/deliver` | Required | Full delivery URL, including path |
-| `targetHeaders` | `{ }` | Optional | Static headers attached to every request, in addition to the data-driven `X-Event-Type`/`X-Correlation-Id` headers set from the payload |
+| `targetHeaders` | `{ }` | Optional | Static headers attached to every request, in addition to any headers promoted from the payload via `transformHeaderFields` (below) and the always-on `X-Correlation-Id` (set from the Solace message ID, not from the payload) |
+
+**Payload transformation** (optional; off by default, meaning a pure passthrough - see `bridge/service.bal`'s companion `transform.bal` for the implementation):
+
+| Key | Default | Required | Controls |
+|---|---|---|---|
+| `transformFieldRenames` | `{}` | Optional | Moves a field from one dot-path to another, e.g. `{ "employee.employeeId" = "employeeId" }`. An exact, literal top-level key is tried first before a path is split and walked as nesting, so a flat key that happens to contain a literal dot and real nested objects both resolve correctly from the same string |
+| `transformStaticFields` | `{}` | Optional | Constant fields added to every transformed payload; destination is also a dot-path, so nested output is possible |
+| `transformTimestampField` | `""` | Optional | If non-empty, stamps the current UTC time at this dot-path. Empty skips it entirely |
+| `transformHeaderFields` | `{}` | Optional | Promotes a field from the *already-transformed* payload to a request header (header name → dot-path). Must be a bare TOML key, same rule as `targetHeaders` above |
+
+See [`../samples/payload-transformation`](../samples/payload-transformation/) for these four configured together to reproduce a real before/after example.
 
 **Basic auth** (optional; leave unset to send no `Authorization` header at all):
 

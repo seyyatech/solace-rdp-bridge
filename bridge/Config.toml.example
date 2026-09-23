@@ -3,15 +3,16 @@
 # Config.toml (or docker-config.toml, bind-mounted) tuned to that sample's scenario, so you
 # generally won't start from this file directly; it's here as the full reference and for running
 # the bridge directly (e.g. `bal run`) against a broker/target of your own.
-[solace_rdp_plus.bridge]
+[solace_rdp_bridge.bridge]
 brokerUrl = "tcp://localhost:55554"
 messageVpn = "default"
 username = "admin"
 password = "admin"
 
-# Route 1 - which queue to consume and where to deliver. targetUrl is the *full* URL including
-# path. targetHeaders are static headers attached to every request, in addition to the
-# data-driven X-Event-Type/X-Correlation-Id headers set from the payload.
+# Which queue to consume and where to deliver. targetUrl is the *full* URL including
+# path. targetHeaders are static headers attached to every request, in addition to any headers
+# promoted from the transformed payload via transformHeaderFields (below) and the always-on
+# X-Correlation-Id (set from the Solace message ID, not from the payload).
 #
 # Header names must be bare TOML keys (e.g. `X-Api-Key = "demo-key"`) - a quoted key like
 # `"X-Api-Key" = ...` is parsed with the literal quote characters included in the header name and
@@ -21,30 +22,18 @@ targetUrl = "http://localhost:8081/deliver"
 targetHeaders = { }
 # Example: targetHeaders = { X-Api-Key = "demo-key" }
 
-# Route 1's HTTP Basic auth credentials - optional. Leave targetUsername empty to send no
-# Authorization header at all.
+# HTTP Basic auth credentials - optional. Leave targetUsername empty to send no Authorization
+# header at all.
 targetUsername = ""
 targetPassword = ""
 
-# Route 1's OAuth2 client-credentials - an alternative to Basic above, not stacked with it (OAuth2
-# wins if both are set). Leave targetOAuth2TokenUrl empty to disable OAuth2 for this route.
-# targetOAuth2Scopes is optional - leave it empty to request the token endpoint's default scopes.
+# OAuth2 client-credentials - an alternative to Basic above, not stacked with it (OAuth2 wins if
+# both are set). Leave targetOAuth2TokenUrl empty to disable OAuth2. targetOAuth2Scopes is
+# optional - leave it empty to request the token endpoint's default scopes.
 targetOAuth2TokenUrl = ""
 targetOAuth2ClientId = ""
 targetOAuth2ClientSecret = ""
 targetOAuth2Scopes = []
-
-# Route 2 - a second, independent queue-to-target route from this same bridge instance, configured
-# the same way as route 1.
-queueName2 = "bridge-demo-queue-2"
-targetUrl2 = "http://localhost:8081/deliver2"
-targetHeaders2 = { }
-targetUsername2 = ""
-targetPassword2 = ""
-targetOAuth2TokenUrl2 = ""
-targetOAuth2ClientId2 = ""
-targetOAuth2ClientSecret2 = ""
-targetOAuth2Scopes2 = []
 
 # Retry + backoff, applied per delivery attempt by the http:Client. requestTimeout is per-attempt
 # (a slower response counts as a timeout failure, retried like a 5xx). retryCount is *additional*
@@ -60,6 +49,21 @@ retryMaxWaitInterval = 10
 # since both are answering "was this a target-health problem?" A 4xx is deliberately excluded from
 # both: it's a permanent rejection, so it neither retries nor counts against target health.
 transientStatusCodes = [500, 502, 503, 504, 507, 508, 509]
+
+# Payload transformation - all optional, all off (empty) by default, meaning a pure passthrough.
+# transformFieldRenames moves a field from one dot-path to another (e.g. "employee.employeeId" =
+# "employeeId" reads a nested field and writes it back out flat); an exact, literal top-level key
+# is tried first before a path is split and walked as nesting, so a payload with a genuinely flat
+# key containing a literal dot and one with real nesting both resolve correctly from the same
+# string. transformStaticFields adds constant fields (destination is also a dot-path).
+# transformTimestampField, if non-empty, stamps the current UTC time at that dot-path.
+# transformHeaderFields promotes a field from the *already-transformed* payload to a request
+# header - note this must be a bare TOML key (see the targetHeaders warning above); a quoted key
+# here is parsed with the literal quote characters included in the header name.
+transformFieldRenames = {}
+transformStaticFields = {}
+transformTimestampField = ""
+transformHeaderFields = {}
 
 # Circuit breaker, wrapping the retry-enabled client above. requestVolumeThreshold is the minimum
 # number of *final* (post-retry) outcomes required in the rolling time window before the breaker

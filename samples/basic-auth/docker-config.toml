@@ -1,0 +1,19 @@
+# The bridge's Config.toml for this sample - bind-mounted by docker-compose.yaml, so editing this
+# file and running `docker compose restart bridge` (no --build) picks up a change.
+[solace_rdp_plus.bridge]
+queueName = "bridge-demo-queue"
+targetUrl = "http://mock-target:8080/deliver"
+targetHeaders = { }
+targetUsername = "demo-user"
+targetPassword = "demo-pass"
+
+
+# Prometheus-style metrics - uncomment to expose them at :9797/metrics. See
+# ../../bridge/README.md's Metrics section.
+# [ballerina.observe]
+# metricsEnabled = true
+# metricsReporter = "prometheus"
+#
+# [ballerinax.prometheus]
+# port = 9797
+# host = "0.0.0.0"

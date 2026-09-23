@@ -1,0 +1,4 @@
+[package]
+org = "samples"
+name = "basic_auth_mock"
+version = "0.1.0"

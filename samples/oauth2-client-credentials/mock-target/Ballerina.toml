@@ -1,0 +1,4 @@
+[package]
+org = "samples"
+name = "oauth2_client_credentials_mock"
+version = "0.1.0"

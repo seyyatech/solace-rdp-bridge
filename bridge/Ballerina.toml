@@ -1,5 +1,5 @@
 [package]
-org = "solace_rdp_plus"
+org = "solace_rdp_bridge"
 name = "bridge"
 version = "0.1.0"
 

@@ -62,8 +62,8 @@ sequence diagrams for the delivery flow: [`docs/architecture.md`](docs/architect
 ## Quick start
 
 ```bash
-git clone https://github.com/seyyatech/solace-rdp-plus.git
-cd solace-rdp-plus/samples/resilient-delivery
+git clone https://github.com/seyyatech/solace-rdp-bridge.git
+cd solace-rdp-bridge/samples/resilient-delivery
 docker compose up -d --build
 ./init/setup.sh
 ```

@@ -1,5 +1,5 @@
 # The bridge's Config.toml for this sample - bind-mounted by docker-compose.yaml.
-[solace_rdp_plus.bridge]
+[solace_rdp_bridge.bridge]
 queueName = "bridge-demo-queue"
 targetUrl = "http://mock-target:8080/deliver"
 targetHeaders = { }

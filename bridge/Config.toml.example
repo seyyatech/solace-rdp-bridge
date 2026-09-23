@@ -3,7 +3,7 @@
 # Config.toml (or docker-config.toml, bind-mounted) tuned to that sample's scenario, so you
 # generally won't start from this file directly; it's here as the full reference and for running
 # the bridge directly (e.g. `bal run`) against a broker/target of your own.
-[solace_rdp_plus.bridge]
+[solace_rdp_bridge.bridge]
 brokerUrl = "tcp://localhost:55554"
 messageVpn = "default"
 username = "admin"

@@ -1,26 +1,31 @@
-# Solace → Ballerina delivery bridge
+# RDP Bridge
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-A more resilient, open-source alternative to Solace's **REST Delivery Point (RDP)** (a
-Ballerina service that subscribes to a Solace queue and delivers to REST endpoints with circuit
-breaking, retry/backoff, response-aware ack/nack, payload transformation, and Basic/OAuth2 auth,
-all of it config-driven): the resilience RDP was never built to offer.
+An open-source companion to Solace's **REST Delivery Point (RDP)** (a Ballerina service that
+subscribes to a Solace queue and delivers to REST endpoints with circuit breaking, retry/backoff,
+response-aware ack/nack, and payload transformation, all of it config-driven), for delivery
+scenarios that need application-level logic: decision-making that belongs in code, not broker
+configuration.
 
 RDP is genuinely great for the simple case: point a queue at a URL, zero code, messages flow.
-The moment you need more than that (a target that goes down, a payload that needs reshaping, a
-target behind real auth), RDP has nowhere to go, because it's a fixed broker feature, not a
-program. This bridge is what "more" looks like, packaged as one container you drop in next to
-your broker.
+The moment you need more than that (a target that fails intermittently and needs backoff plus a
+circuit breaker, a payload that needs reshaping, custom logic tied to your own auth flow), that
+logic belongs in an application. This bridge is what "more" looks like, packaged as one container
+you drop in next to your broker.
 
 ## The problem, briefly
 
-- **No circuit breaker**: a failing target gets hammered at a fixed rate forever, no backoff.
-- **Responses are mostly ignored**: coarse success/exhausted-retries, no branching on status.
-- **Thin error logging**: root-causing a downstream HTTP failure from broker logs alone is
-  painful.
-- **No payload shaping**: whatever's on the queue is what goes over the wire, verbatim.
-- **Limited auth**: whatever RDP's own REST target config happens to support.
+- **No circuit breaker**: RDP retries at a fixed interval indefinitely by default (bounded only
+  if you configure `max-redelivery`/`max-ttl` yourself), with no backoff and no way to trip and
+  stop calling a persistently failing target.
+- **Response handling is broker-level**: since broker version 10.12, specific status codes can be
+  marked as rejections (skip retry, straight to the dead message queue), but there's still no
+  branching on response *content* as testable, versionable code.
+- **Logs are broker-level**: per-message delivery tracing lives in application code, not in the
+  broker's own logs.
+- **No body reshaping**: RDP's substitution expressions can set headers or a request target from
+  topic/system values, but the message body itself is delivered verbatim.
 
 Full case, and the comparison table: [`docs/problem-and-solution.md`](docs/problem-and-solution.md).
 
@@ -63,9 +68,9 @@ docker compose up -d --build
 ./init/setup.sh
 ```
 
-Then flip the mock target unhealthy and watch a real RDP hammer it forever while the bridge's
-circuit breaker trips, fast-fails, and later recovers cleanly on its own; the actual side-by-side
-proof, not a claim:
+Then flip the mock target unhealthy and watch a real RDP retry it at a fixed rate with no backoff
+while the bridge's circuit breaker trips, fast-fails, and later recovers cleanly on its own; see
+the difference side by side:
 
 ```bash
 curl -X POST -H "Content-Type: application/json" -d '{"statusCode": 503}' http://localhost:8081/control
@@ -77,7 +82,7 @@ walkthrough, and [`samples/`](samples/) for every other scenario.
 
 ## Docs
 
-- [`docs/problem-and-solution.md`](docs/problem-and-solution.md): the case against RDP, the
+- [`docs/problem-and-solution.md`](docs/problem-and-solution.md): when to reach beyond RDP, the
   full comparison, and the scenario list.
 - [`docs/architecture.md`](docs/architecture.md): how the bridge is put together, with
   sequence diagrams.

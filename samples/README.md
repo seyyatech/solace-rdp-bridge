@@ -8,13 +8,13 @@ names and ports.
 
 | Sample | What it shows |
 |---|---|
-| [`resilient-delivery`](resilient-delivery/) | Retry/backoff, circuit breaker, response-aware ack/nack, with a real RDP running side by side, hammering a failing target with no backoff, for a direct comparison |
+| [`resilient-delivery`](resilient-delivery/) | Retry/backoff, circuit breaker, response-aware ack/nack, with a real RDP running side by side for a direct comparison |
 | [`payload-transformation`](payload-transformation/) | Field renaming and enrichment applied before delivery |
 | [`basic-auth`](basic-auth/) | Authenticating to a target that requires HTTP Basic credentials |
 | [`oauth2-client-credentials`](oauth2-client-credentials/) | Token acquisition, caching, and transparent refresh |
 
 New to the project? Start with [`../docs/problem-and-solution.md`](../docs/problem-and-solution.md)
-for what this replaces and why, and [`../docs/architecture.md`](../docs/architecture.md) for how
+for what this extends and why, and [`../docs/architecture.md`](../docs/architecture.md) for how
 the bridge itself works, then pick whichever sample matches what you're trying to do.
 
 ## How to run a sample

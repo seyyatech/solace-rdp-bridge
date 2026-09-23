@@ -3,15 +3,19 @@
 ## The scenario
 
 A target requires an OAuth2 access token, acquired via the client-credentials grant, refreshed
-as it expires. A Solace REST Delivery Point (RDP) has no first-class support for this flow at
-all: there's nowhere to configure a token endpoint, nowhere for a refresh cycle to live.
+as it expires. A Solace REST Delivery Point (RDP) already supports this: its `oauth-client`
+scheme handles client-credentials directly on the REST consumer (`oauth-jwt` covers JWT-based
+flows too). What it doesn't give you is per-message visibility into the token lifecycle, or
+combining that auth with the retry/circuit-breaker/logging behavior the other samples
+demonstrate, in one composable piece of software instead of separate broker configuration.
 
 ## What the bridge adds over RDP
 
 | | Solace RDP | This bridge |
 |---|---|---|
-| OAuth2 support | None | Full client-credentials grant: fetch, cache, transparent refresh |
-| Token refresh | N/A | Automatic, on expiry, with zero visible change to delivery behavior |
+| OAuth2 support | `oauth-client` (client-credentials) and `oauth-jwt`, configured on the REST consumer | Client-credentials grant, configured in `Config.toml` |
+| Reconfiguring credentials | REST consumer must be shut down to change OAuth settings | Edit `docker-config.toml`, `docker compose restart bridge` |
+| Per-message visibility | Broker-level only | Structured logs showing token fetch/reuse alongside the same delivery outcome |
 
 Full comparison: [`../../docs/problem-and-solution.md`](../../docs/problem-and-solution.md).
 

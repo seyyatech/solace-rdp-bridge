@@ -3,17 +3,16 @@
 ## The scenario
 
 A downstream target starts failing or goes down. A Solace REST Delivery Point (RDP) has no
-circuit breaker and no meaningful retry policy: it keeps hammering the same failing target at a
-fixed rate, forever, with no backoff. This sample runs a real RDP and the bridge side by side
-against the same kind of failure, so the contrast is something you can watch happen, not just
-read about.
+circuit breaker and no growing backoff: it retries the same failing target at a fixed interval,
+indefinitely by default. This sample runs a real RDP and the bridge side by side against the same
+kind of failure, so the contrast is something you can watch happen, not just read about.
 
 ## What the bridge adds over RDP
 
 | | Solace RDP | This bridge |
 |---|---|---|
-| On a 5xx / timeout | Retries forever at a fixed rate | Retries a bounded number of times with growing backoff, then dead-letters |
-| On sustained failure | No circuit breaker; keeps hammering the target | Circuit breaker trips: fast-fails without calling the target at all, until a trial call decides it's healthy again |
+| On a 5xx / timeout | Retries at a fixed interval, indefinitely by default | Retries a bounded number of times with growing backoff, then dead-letters |
+| On sustained failure | No circuit breaker; keeps retrying the target at the same fixed rate | Circuit breaker trips: fast-fails without calling the target at all, until a trial call decides it's healthy again |
 | On a 4xx | Same coarse handling as any other failure | Recognized as a permanent rejection: dead-lettered immediately, no retry wasted on it |
 | Diagnosing a failure | Broker-level logs only | Structured logs: message ID, target, whether it was redelivered |
 
@@ -40,7 +39,7 @@ flowchart LR
     RDP -->|"POST /\nalways 500"| MOCK["mock-target"]
     BRIDGE -->|"POST /deliver\nflippable via /control"| MOCK
 
-    style RDP fill:#7a1f1f,stroke:#ff6b6b,stroke-width:2px,color:#ffffff
+    style RDP fill:#1e3a5f,stroke:#5b9bd5,stroke-width:2px,color:#ffffff
     style BRIDGE fill:#14532d,stroke:#4caf50,color:#ffffff
 ```
 
@@ -67,13 +66,14 @@ and `restart: on-failure` retries rather than requiring a specific startup order
 
 ## Try it
 
-#### RDP hammering with no backoff:
+#### RDP hammering at a fixed rate:
 
 ```bash
 docker exec solace-broker curl -s -X POST -d "test payload" -H "Content-Type: text/plain" \
   http://localhost:9000/QUEUE/rdp-demo-queue
 
-docker compose logs -f mock-target   # hammered with POST / and 500 responses, no pause between them
+docker compose logs -f mock-target   # POST / and a 500 response, repeating at a fixed ~5s interval
+                                      # (this RDP consumer's retryDelay) - forever, with no backoff
 ```
 
 #### The bridge succeeding, then failing, then recovering:
@@ -89,10 +89,10 @@ docker compose logs -f bridge   # received -> forwarding to target -> delivered 
 
 2. flip the target unhealthy, then publish a few messages in a row
 - expect: a couple of retried failures, then ballerina/http logs
-"CircuitBreaker failure threshold exceeded. 
+  "CircuitBreaker failure threshold exceeded.
 - Circuit tripped from CLOSE to OPEN state." -
-every delivery after that fast-fails ("circuit open, fast-failing ... requeueing") without a
-single call reaching mock-target
+  every delivery after that fast-fails ("circuit open, fast-failing ... requeueing") without a
+  single call reaching mock-target
 ```bash
 curl -s -X POST -H "Content-Type: application/json" -d '{"statusCode": 503}' http://localhost:8081/control
 

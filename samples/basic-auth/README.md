@@ -3,16 +3,16 @@
 ## The scenario
 
 A target requires credentials before it'll accept a delivery. A Solace REST Delivery Point (RDP)
-can authenticate to a target, but only however its own REST target configuration supports;
-there's no application-level control over the flow, and no way to see what happens when
-credentials are wrong beyond the broker's own coarse retry behavior.
+already supports HTTP Basic auth directly on the REST consumer; what it doesn't give you is
+application-level visibility into what happens when credentials are wrong, or combining that
+auth with the retry/circuit-breaker/logging behavior the other samples demonstrate.
 
 ## What the bridge adds over RDP
 
 | | Solace RDP | This bridge |
 |---|---|---|
-| Auth mechanism | Whatever the RDP's REST target config supports | HTTP Basic, configured per target |
-| Wrong credentials | Broker-level retry, no distinction from any other failure | Recognized as a permanent rejection (a 4xx); dead-lettered immediately, not retried forever |
+| Auth mechanism | HTTP Basic built in (also client-cert, header, OAuth2, and more) | HTTP Basic, configured per target |
+| Wrong credentials | Same retry as any other failure by default; configurable since 10.12 to mark specific codes as a rejection | Recognized as a permanent rejection out of the box, no extra config; dead-lettered immediately |
 
 Full comparison: [`../../docs/problem-and-solution.md`](../../docs/problem-and-solution.md).
 

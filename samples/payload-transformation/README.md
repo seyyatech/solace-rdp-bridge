@@ -2,18 +2,18 @@
 
 ## The scenario
 
-A Solace REST Delivery Point (RDP) delivers whatever's on the queue, verbatim, with no
-transformation, enrichment, or header mapping. If the downstream system expects different field
-names, or needs metadata the source message never carried, RDP can't help; that has to happen
-somewhere else, or not at all.
+A Solace REST Delivery Point (RDP) delivers the message body verbatim: no transformation or
+enrichment of its content. It can set headers or a request target from substitution expressions
+(topic values, system-generated tokens), but it can't read a field out of the body and promote it
+to a header, or reshape the body's own content; that has to happen somewhere else, or not at all.
 
 ## What the bridge adds over RDP
 
 | | Solace RDP | This bridge |
 |---|---|---|
-| Field renaming | Not possible | Renames fields before delivery |
+| Body reshaping | Not possible; delivered verbatim | Renames/restructures fields before delivery |
 | Enrichment | Not possible | Adds metadata the source message didn't carry |
-| Header mapping | Not possible | Promotes payload fields to request headers |
+| Header values | Static values or substitution expressions (topic, system tokens) - not from the body | Promotes a field from the message *body* to a header |
 
 Full comparison: [`../../docs/problem-and-solution.md`](../../docs/problem-and-solution.md).
 
@@ -24,11 +24,11 @@ before delivering it:
 
 ```mermaid
 flowchart LR
-    IN["{\n  workerId: 'W-1',\n  eventType: 'HIRE',\n  department: 'Engineering'\n}"] --> B["Bridge\ntransformPayload()"]
-    B --> OUT["{\n  employeeId: 'W-1',\n  action: 'HIRE',\n  department: 'Engineering',\n  source: 'solace-delivery-bridge',\n  processedAt: '2026-...'\n}"]
-    B -.->|"also sets headers"| HEADERS["X-Event-Type: HIRE\nX-Correlation-Id: W-1"]
+  IN["{\n  workerId: 'W-1',\n  eventType: 'HIRE',\n  department: 'Engineering'\n}"] --> B["Bridge\ntransformPayload()"]
+  B --> OUT["{\n  employeeId: 'W-1',\n  action: 'HIRE',\n  department: 'Engineering',\n  source: 'solace-delivery-bridge',\n  processedAt: '2026-...'\n}"]
+  B -.->|"also sets headers"| HEADERS["X-Event-Type: HIRE\nX-Correlation-Id: W-1"]
 
-    style B fill:#14532d,stroke:#4caf50,color:#ffffff
+  style B fill:#14532d,stroke:#4caf50,color:#ffffff
 ```
 
 - `workerId` → `employeeId` and `eventType` → `action` (field renaming: a real downstream system
@@ -62,7 +62,7 @@ docker exec solace-broker curl -s -X POST -H "Content-Type: application/json" \
   http://localhost:9000/QUEUE/bridge-demo-queue
 ```
 
-Watch the logs of the bridge and the mock target:                                                                                                                                                                                
+Watch the logs of the bridge and the mock target:
 ```bash                                                                                                                                                                                                                                   
   docker compose logs -f bridge mock-target 
 ```

@@ -5,7 +5,7 @@
 "Outbound" and "inbound" here are relative to the **Solace broker**, not to any particular
 application:
 
-- **Outbound (REST Delivery Point, what this project replaces)**: the broker itself *initiates*
+- **Outbound (REST Delivery Point, what this project extends)**: the broker itself *initiates*
   an HTTP request. A message lands on a queue, and an RDP pushes it *out* to an external REST
   endpoint via POST/PUT. The broker is the HTTP client; the target system is the HTTP server.
   This bridge sits in this same slot, a drop-in alternative to an RDP, not to REST messaging.
@@ -120,10 +120,10 @@ in the order it happens:
    - **Still failing after every attempt, or the circuit was already open** → `nack(requeue=true)`
      (dotted, loops back rather than ending): the broker redelivers it. Once enough of these
      accumulate, the circuit trips: further deliveries skip straight to this branch with no call
-     to the target at all, protecting it from exactly the kind of hammering an RDP does. It
-     doesn't stop the broker's own (backoff-less) redelivery loop, though; the bridge adds its
-     own small pause here too, or the loop just moves from hammering the target to hammering the
-     broker instead.
+     to the target at all, protecting it from the same kind of fixed-rate retrying RDP does by
+     default. It doesn't stop the broker's own (backoff-less) redelivery loop, though; the bridge
+     adds its own small pause here too, or the loop just moves from retrying the target to
+     retrying the broker instead.
 
 Every log line at every step above carries the message ID, target, and whether the message was
 redelivered; see [`bridge/README.md`](../bridge/README.md) for how to read these logs (and enable

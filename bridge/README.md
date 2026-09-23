@@ -1,11 +1,11 @@
 # bridge
 
 The Ballerina service that is the actual product: it subscribes to a Solace queue and delivers
-each message to a configured HTTP target, replacing what a Solace REST Delivery Point
-(RDP) does, with the resilience RDP doesn't provide. See
-[`../docs/problem-and-solution.md`](../docs/problem-and-solution.md) for the case against RDP and
-[`../docs/architecture.md`](../docs/architecture.md) for how the pieces below fit together,
-including sequence diagrams.
+each message to a configured HTTP target, sitting in the same slot as a Solace REST Delivery
+Point (RDP), extended with application-level retry/circuit-breaking, transformation, and logging.
+See [`../docs/problem-and-solution.md`](../docs/problem-and-solution.md) for when to reach beyond
+RDP and [`../docs/architecture.md`](../docs/architecture.md) for how the pieces below fit
+together, including sequence diagrams.
 
 ## What it does
 
@@ -14,7 +14,7 @@ including sequence diagrams.
   5xx, a timeout, or a request-level error retries, then nacks with a requeue if every attempt
   fails.
 - **Retry with backoff and a circuit breaker**, per target: a struggling target gets protected
-  instead of hammered at a fixed rate.
+  instead of retried at a fixed rate indefinitely.
 - **Structured logs**: every log line carries the message ID, the target, and whether the
   message was redelivered, so a failed delivery is root-causable from the bridge's own logs.
 - **Payload transformation**: a fixed field/header mapping and enrichment, applied before

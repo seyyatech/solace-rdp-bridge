@@ -1,4 +1,4 @@
-# bridge
+# Bridge
 
 The Ballerina service that is the actual product: it subscribes to a Solace queue and delivers
 each message to a configured HTTP target, sitting in the same slot as a Solace REST Delivery

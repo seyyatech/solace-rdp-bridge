@@ -71,7 +71,7 @@ sequenceDiagram
     participant T as Target REST endpoint
 
     Q->>B: 1. deliver message (SMF, CLIENT_ACK)
-    Note over B: transform payload - field/header mapping + enrichment
+    Note over B: transform payload - config-driven field/header mapping + enrichment
     alt transformation failed (not a parseable JSON object)
         B--)Q: 4. nack(requeue=false) - routed to the DMQ, no call to the target at all
     else circuit open
@@ -97,8 +97,11 @@ Left to right above is broker, bridge, target; every solid arrow is a real netwo
 in the order it happens:
 
 1. **Broker → bridge**: the queue delivers the message over SMF. The bridge transforms the
-   payload immediately after (no network hop). A payload that fails to parse here nacks straight
-   to the DMQ; nothing else below happens for that message.
+   payload immediately after (no network hop) - config-driven (renames, static/timestamp
+   enrichment, header promotion; see `bridge/README.md`'s Payload transformation section), not
+   hardcoded, so changing the mapping is a config edit and a restart, not a rebuild. A payload
+   that fails to parse here nacks straight to the DMQ; nothing else below happens for that
+   message.
 2. **Bridge → target**: the bridge POSTs the *transformed* payload, with the mapped headers,
    possibly more than once, and only if the circuit is closed (or half-open and due its one
    trial). Steps 2–3 repeat inside the `http:Client`'s own retry loop entirely before the bridge's

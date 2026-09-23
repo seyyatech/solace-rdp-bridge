@@ -1,0 +1,4 @@
+[package]
+org = "samples"
+name = "payload_transformation_mock"
+version = "0.1.0"

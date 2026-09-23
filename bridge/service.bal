@@ -9,7 +9,6 @@ import ballerina/http;
 import ballerina/lang.runtime;
 import ballerina/log;
 import ballerina/observe;
-import ballerina/time;
 import ballerinax/prometheus as _;
 import ballerinax/solace;
 
@@ -19,9 +18,10 @@ configurable string username = "admin";
 configurable string password = "admin";
 
 // Route 1 - which queue to consume, where to deliver, and any static headers to attach to every
-// request (in addition to the data-driven X-Event-Type/X-Correlation-Id headers set from the
-// payload - see transformPayload below). targetUrl is the full URL including path, so pointing
-// this route at a different target - including a different path - is purely a config change.
+// request (in addition to any headers promoted from the payload via transformHeaderFields, and
+// the always-on X-Correlation-Id - see transform.bal). targetUrl is the full URL including path,
+// so pointing this route at a different target - including a different path - is purely a config
+// change.
 configurable string queueName = "bridge-demo-queue";
 configurable string targetUrl = "http://localhost:8081/deliver";
 configurable map<string> targetHeaders = {};
@@ -186,40 +186,6 @@ final http:Client mockEndpoint2 = check newTargetClient(targetUrl2, {
     oauth2Scopes: targetOAuth2Scopes2
 });
 
-// A fixed transformation of the example worker-event payload used throughout these samples:
-// renames workerId -> employeeId and eventType -> action (a real downstream system typically
-// speaks a different field-naming convention than the source), and adds source + processedAt as
-// enrichment. Anything else in the payload passes through untouched. See
-// samples/payload-transformation for the full before/after and how to adapt this to a different
-// payload shape.
-function transformPayload(anydata payload) returns map<json>|error {
-    json parsed;
-    if payload is byte[] {
-        parsed = check (check string:fromBytes(payload)).fromJsonString();
-    } else if payload is string {
-        parsed = check payload.fromJsonString();
-    } else if payload is json {
-        parsed = payload;
-    } else {
-        return error("payload is neither bytes, string, nor json - cannot transform");
-    }
-
-    if parsed !is map<json> {
-        return error("payload is valid JSON but not a JSON object - cannot transform");
-    }
-
-    map<json> transformed = parsed.clone();
-    if transformed.hasKey("workerId") {
-        transformed["employeeId"] = transformed.remove("workerId");
-    }
-    if transformed.hasKey("eventType") {
-        transformed["action"] = transformed.remove("eventType");
-    }
-    transformed["source"] = "solace-delivery-bridge";
-    transformed["processedAt"] = time:utcToString(time:utcNow());
-    return transformed;
-}
-
 // Three mutually exclusive outcomes per message - exactly one of these increments per delivery
 // attempt, so together they total every message this bridge instance has handled. "Failure"
 // covers every nack, whichever branch reached it (transformation failure, a 4xx from the target,
@@ -268,9 +234,8 @@ function handleDelivery(solace:Message message, solace:Caller caller, http:Clien
     foreach [string, string] [headerName, headerValue] in headers.entries() {
         request.setHeader(headerName, headerValue);
     }
-    json action = transformed["action"];
-    if action is string {
-        request.setHeader("X-Event-Type", action);
+    foreach [string, string] [headerName, headerValue] in resolveHeaderFields(transformed).entries() {
+        request.setHeader(headerName, headerValue);
     }
     if messageId is string {
         request.setHeader("X-Correlation-Id", messageId);

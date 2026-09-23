@@ -60,7 +60,18 @@ half-configured.
 |---|---|---|---|
 | `queueName` | `bridge-demo-queue` | Required | Queue this route consumes from |
 | `targetUrl` | `http://localhost:8081/deliver` | Required | Full delivery URL, including path |
-| `targetHeaders` | `{ }` | Optional | Static headers attached to every request, in addition to the data-driven `X-Event-Type`/`X-Correlation-Id` headers set from the payload |
+| `targetHeaders` | `{ }` | Optional | Static headers attached to every request, in addition to any headers promoted from the payload via `transformHeaderFields` (below) and the always-on `X-Correlation-Id` (set from the Solace message ID, not from the payload) |
+
+**Payload transformation** (optional; off by default, meaning a pure passthrough - see `bridge/service.bal`'s companion `transform.bal` for the implementation):
+
+| Key | Default | Required | Controls |
+|---|---|---|---|
+| `transformFieldRenames` | `{}` | Optional | Moves a field from one dot-path to another, e.g. `{ "employee.employeeId" = "employeeId" }`. An exact, literal top-level key is tried first before a path is split and walked as nesting, so a flat key that happens to contain a literal dot and real nested objects both resolve correctly from the same string |
+| `transformStaticFields` | `{}` | Optional | Constant fields added to every transformed payload; destination is also a dot-path, so nested output is possible |
+| `transformTimestampField` | `""` | Optional | If non-empty, stamps the current UTC time at this dot-path. Empty skips it entirely |
+| `transformHeaderFields` | `{}` | Optional | Promotes a field from the *already-transformed* payload to a request header (header name → dot-path). Must be a bare TOML key, same rule as `targetHeaders` above |
+
+See [`../samples/payload-transformation`](../samples/payload-transformation/) for these four configured together to reproduce a real before/after example.
 
 **Basic auth** (optional; leave unset to send no `Authorization` header at all):
 

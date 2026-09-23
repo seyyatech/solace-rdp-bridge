@@ -4,7 +4,7 @@
 # across every sample without a rebuild.
 FROM ballerina/ballerina:2201.13.6 AS build
 WORKDIR /build
-COPY Ballerina.toml service.bal ./
+COPY Ballerina.toml *.bal ./
 RUN bal build .
 
 FROM eclipse-temurin:21-jre-jammy

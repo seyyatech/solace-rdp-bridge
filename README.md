@@ -4,8 +4,8 @@
 
 A more resilient, open-source alternative to Solace's **REST Delivery Point (RDP)** (a
 Ballerina service that subscribes to a Solace queue and delivers to REST endpoints with circuit
-breaking, retry/backoff, response-aware ack/nack, payload transformation, multi-target routing,
-and Basic/OAuth2 auth, all of it config-driven): the resilience RDP was never built to offer.
+breaking, retry/backoff, response-aware ack/nack, payload transformation, and Basic/OAuth2 auth,
+all of it config-driven): the resilience RDP was never built to offer.
 
 RDP is genuinely great for the simple case: point a queue at a URL, zero code, messages flow.
 The moment you need more than that (a target that goes down, a payload that needs reshaping, a
@@ -33,8 +33,7 @@ Full case, and the comparison table: [`docs/problem-and-solution.md`](docs/probl
 - Structured logs: root-cause a failed delivery from the bridge's own logs alone.
 - Payload transformation: field/header mapping and enrichment, not pass-through.
 - Prometheus-style metrics.
-- Config-driven, multi-target routing: two independent routes from one running bridge.
-- HTTP Basic and OAuth2 client-credentials auth per target, including transparent token refresh.
+- HTTP Basic and OAuth2 client-credentials auth, including transparent token refresh.
 
 Every one of these is a working, runnable sample under [`samples/`](samples/): the scenario, the
 comparison to RDP, diagrams, and exact setup/test steps.
@@ -43,11 +42,11 @@ comparison to RDP, diagrams, and exact setup/test steps.
 
 ```mermaid
 flowchart LR
-    subgraph Outbound["Outbound: REST Delivery Point (this project's target)"]
-        direction LR
-        Q2[(Queue)] --> BROKER2((Solace Broker))
-        BROKER2 -->|"HTTP POST/PUT\n(broker is the client)"| EXT_OUT[External REST endpoint]
-    end
+  subgraph Outbound["Outbound: REST Delivery Point (this project's target)"]
+    direction LR
+    Q2[(Queue)] --> BROKER2((Solace Broker))
+    BROKER2 -->|"HTTP POST/PUT\n(broker is the client)"| EXT_OUT[External REST endpoint]
+  end
 ```
 
 This bridge is a drop-in alternative to the outbound (RDP) side, not to REST messaging, and not

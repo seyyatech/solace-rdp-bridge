@@ -5,12 +5,6 @@ queueName = "bridge-demo-queue"
 targetUrl = "http://mock-target:8080/deliver"
 targetHeaders = { }
 
-# Route 2 is configured identically to route 1 - the bridge always runs two routes (see
-# ../../bridge/README.md), and this sample is about resilience, not multi-target routing.
-queueName2 = "bridge-demo-queue-2"
-targetUrl2 = "http://mock-target:8080/deliver"
-targetHeaders2 = { }
-
 # Demo-friendly retry/circuit-breaker values - a few seconds total, not production tuning.
 requestTimeout = 5
 retryCount = 3

@@ -1,7 +1,7 @@
-// A Solace queue-to-REST delivery bridge: subscribes to one or more Solace queues and delivers
-// each message to a configured HTTP target, with retry/backoff, a circuit breaker, response-aware
-// ack/nack, payload transformation, metrics, and per-target auth (Basic or OAuth2) - the
-// resilience a Solace REST Delivery Point (RDP) doesn't provide on its own.
+// A Solace queue-to-REST delivery bridge: subscribes to a Solace queue and delivers each message
+// to a configured HTTP target, with retry/backoff, a circuit breaker, response-aware ack/nack,
+// payload transformation, metrics, and per-target auth (Basic or OAuth2) - the resilience a
+// Solace REST Delivery Point (RDP) doesn't provide on its own.
 //
 // See docs/architecture.md for how the pieces fit together and docs/problem-and-solution.md for
 // what this adds over RDP. Each capability below is demonstrated in isolation under samples/.
@@ -17,21 +17,20 @@ configurable string messageVpn = "default";
 configurable string username = "admin";
 configurable string password = "admin";
 
-// Route 1 - which queue to consume, where to deliver, and any static headers to attach to every
-// request (in addition to any headers promoted from the payload via transformHeaderFields, and
-// the always-on X-Correlation-Id - see transform.bal). targetUrl is the full URL including path,
-// so pointing this route at a different target - including a different path - is purely a config
-// change.
+// Which queue to consume, where to deliver, and any static headers to attach to every request (in
+// addition to any headers promoted from the payload via transformHeaderFields, and the always-on
+// X-Correlation-Id - see transform.bal). targetUrl is the full URL including path, so pointing
+// this at a different target - including a different path - is purely a config change.
 configurable string queueName = "bridge-demo-queue";
 configurable string targetUrl = "http://localhost:8081/deliver";
 configurable map<string> targetHeaders = {};
 
-// Route 1's HTTP Basic auth - optional. An empty targetUsername (the default) means no
-// Authorization header is sent at all, not one with empty credentials.
+// HTTP Basic auth - optional. An empty targetUsername (the default) means no Authorization header
+// is sent at all, not one with empty credentials.
 configurable string targetUsername = "";
 configurable string targetPassword = "";
 
-// Route 1's OAuth2 client-credentials - an alternative to Basic above, not stacked with it (see
+// OAuth2 client-credentials - an alternative to Basic above, not stacked with it (see
 // newTargetClient's precedence: a non-empty targetOAuth2TokenUrl wins). Once configured, the
 // http:Client handles the whole flow itself: fetching a token from tokenUrl using
 // clientId/clientSecret, attaching it as a Bearer token on every request, and transparently
@@ -41,26 +40,6 @@ configurable string targetOAuth2TokenUrl = "";
 configurable string targetOAuth2ClientId = "";
 configurable string targetOAuth2ClientSecret = "";
 configurable string[] targetOAuth2Scopes = [];
-
-// Route 2 - a second, independent queue-to-target mapping from the same running bridge, configured
-// the same way as route 1. Each queue subscription is declared via a @solace:ServiceConfig
-// annotation, and annotation values must be resolvable at compile time, which is why this is two
-// statically-declared routes rather than an arbitrary-length, runtime-configured list - see the
-// `service on bridgeListener` declarations near the bottom of this file for the actual limitation
-// this runs into if you try to make it fully dynamic.
-configurable string queueName2 = "bridge-demo-queue-2";
-configurable string targetUrl2 = "http://localhost:8081/deliver2";
-configurable map<string> targetHeaders2 = {};
-
-// Route 2's Basic auth - independent of route 1's, same optional-via-empty-string convention.
-configurable string targetUsername2 = "";
-configurable string targetPassword2 = "";
-
-// Route 2's OAuth2 client-credentials - independent of route 1's.
-configurable string targetOAuth2TokenUrl2 = "";
-configurable string targetOAuth2ClientId2 = "";
-configurable string targetOAuth2ClientSecret2 = "";
-configurable string[] targetOAuth2Scopes2 = [];
 
 // Retry + backoff, applied per delivery attempt by the http:Client itself. requestTimeout is
 // per-attempt - a response slower than this counts as a timeout failure, which retries exactly
@@ -110,15 +89,8 @@ listener solace:Listener bridgeListener = check new (brokerUrl, {
     auth: {username, password}
 });
 
-// Both routes' clients are built through this, so their retry/circuit-breaker *settings* stay
-// identical by construction - only the target URL and auth differ. Each still gets its own
-// http:Client instance, so circuit-breaker *state* is independent per target even though the
-// thresholds are shared. url is the full URL (host + path) - the client's base URL is set to it
-// directly, and every call posts to path "" (no path appended), so there's exactly one place a
-// target is ever specified per route.
-//
-// OAuth2 takes precedence over Basic when both happen to be configured for the same route - the
-// two are alternatives, not stackable.
+// OAuth2 takes precedence over Basic when both happen to be configured - the two are
+// alternatives, not stackable.
 type TargetAuthConfig record {|
     string username = "";
     string password = "";
@@ -164,11 +136,10 @@ function newTargetClient(string url, TargetAuthConfig auth) returns http:Client|
 
 // Note: an OAuth2-configured client fetches its first token *eagerly*, during construction. If
 // the token endpoint rejects the credentials, client construction itself fails - which fails this
-// whole module's init() and stops the bridge from starting at all (both routes, not just the
-// misconfigured one), rather than only failing deliveries on that one route. Wrong Basic
-// credentials, by contrast, only ever fail the deliveries that use them, since attaching a Basic
-// header needs no network call first. See samples/oauth2-client-credentials for this behavior
-// demonstrated directly.
+// whole module's init() and stops the bridge from starting at all, rather than only failing
+// deliveries. Wrong Basic credentials, by contrast, only ever fail the deliveries that use them,
+// since attaching a Basic header needs no network call first. See samples/oauth2-client-credentials
+// for this behavior demonstrated directly.
 final http:Client mockEndpoint = check newTargetClient(targetUrl, {
     username: targetUsername,
     password: targetPassword,
@@ -176,14 +147,6 @@ final http:Client mockEndpoint = check newTargetClient(targetUrl, {
     oauth2ClientId: targetOAuth2ClientId,
     oauth2ClientSecret: targetOAuth2ClientSecret,
     oauth2Scopes: targetOAuth2Scopes
-});
-final http:Client mockEndpoint2 = check newTargetClient(targetUrl2, {
-    username: targetUsername2,
-    password: targetPassword2,
-    oauth2TokenUrl: targetOAuth2TokenUrl2,
-    oauth2ClientId: targetOAuth2ClientId2,
-    oauth2ClientSecret: targetOAuth2ClientSecret2,
-    oauth2Scopes: targetOAuth2Scopes2
 });
 
 // Three mutually exclusive outcomes per message - exactly one of these increments per delivery
@@ -199,8 +162,7 @@ final observe:Counter deliveryFailureCounter = new ("bridge_delivery_failure_tot
 final observe:Counter circuitOpenCounter = new ("bridge_circuit_open_total",
         desc = "Deliveries fast-failed because the circuit was open - the target was never called");
 
-// The whole per-message pipeline, shared by both routes - the only things that vary between them
-// are which http:Client to call, what URL to log, and which static headers to attach.
+// The whole per-message delivery pipeline.
 //
 // The outcome, in order of precedence: a payload that fails to parse nacks straight to the dead
 // message queue (DMQ), no HTTP call made at all. Otherwise the transformed payload is POSTed to
@@ -212,8 +174,7 @@ final observe:Counter circuitOpenCounter = new ("bridge_circuit_open_total",
 // connector's own call into the underlying client library throws for this queue/broker
 // configuration and the field is never populated. message.redelivered (a boolean) is reliably set
 // and is logged instead.
-function handleDelivery(solace:Message message, solace:Caller caller, http:Client targetClient,
-        string url, map<string> headers) returns error? {
+function handleDelivery(solace:Message message, solace:Caller caller) returns error? {
     string? messageId = message.messageId;
     boolean redelivered = message.redelivered ?: false;
 
@@ -231,7 +192,7 @@ function handleDelivery(solace:Message message, solace:Caller caller, http:Clien
 
     http:Request request = new;
     request.setJsonPayload(transformed);
-    foreach [string, string] [headerName, headerValue] in headers.entries() {
+    foreach [string, string] [headerName, headerValue] in targetHeaders.entries() {
         request.setHeader(headerName, headerValue);
     }
     foreach [string, string] [headerName, headerValue] in resolveHeaderFields(transformed).entries() {
@@ -242,20 +203,20 @@ function handleDelivery(solace:Message message, solace:Caller caller, http:Clien
     }
 
     log:printInfo("forwarding to target", messageId = messageId,
-            target = url, redelivered = redelivered);
-    http:Response|error response = targetClient->post("", request);
+            target = targetUrl, redelivered = redelivered);
+    http:Response|error response = mockEndpoint->post("", request);
 
     if response is http:Response {
         int statusCode = response.statusCode;
         if statusCode >= 200 && statusCode < 300 {
-            log:printInfo("delivered", messageId = messageId, target = url,
+            log:printInfo("delivered", messageId = messageId, target = targetUrl,
                     redelivered = redelivered, statusCode = statusCode);
             check caller->ack(message);
             deliverySuccessCounter.increment();
             log:printInfo("acked", messageId = messageId, redelivered = redelivered);
         } else if statusCode >= 400 && statusCode < 500 {
             log:printError("delivery rejected, bad payload - routing to DMQ",
-                    messageId = messageId, target = url,
+                    messageId = messageId, target = targetUrl,
                     redelivered = redelivered, statusCode = statusCode);
             check caller->nack(message, requeue = false);
             deliveryFailureCounter.increment();
@@ -263,7 +224,7 @@ function handleDelivery(solace:Message message, solace:Caller caller, http:Clien
                     redelivered = redelivered);
         } else {
             log:printError("delivery failed after retries, requeueing for redelivery",
-                    messageId = messageId, target = url,
+                    messageId = messageId, target = targetUrl,
                     redelivered = redelivered, statusCode = statusCode);
             check caller->nack(message, requeue = true);
             deliveryFailureCounter.increment();
@@ -271,7 +232,7 @@ function handleDelivery(solace:Message message, solace:Caller caller, http:Clien
         }
     } else if response is http:UpstreamServiceUnavailableError {
         log:printError("circuit open, fast-failing without calling the target - requeueing",
-                messageId = messageId, target = url, redelivered = redelivered,
+                messageId = messageId, target = targetUrl, redelivered = redelivered,
                 'error = response);
         runtime:sleep(circuitOpenNackDelay);
         check caller->nack(message, requeue = true);
@@ -279,7 +240,7 @@ function handleDelivery(solace:Message message, solace:Caller caller, http:Clien
         log:printInfo("nacked, requeued", messageId = messageId, redelivered = redelivered);
     } else {
         log:printError("delivery attempt errored after retries, requeueing for redelivery",
-                messageId = messageId, target = url, redelivered = redelivered,
+                messageId = messageId, target = targetUrl, redelivered = redelivered,
                 'error = response);
         check caller->nack(message, requeue = true);
         deliveryFailureCounter.increment();
@@ -293,7 +254,6 @@ function init() returns error? {
     check circuitOpenCounter.register();
 }
 
-// Route 1.
 @solace:ServiceConfig {
     queueName,
     ackMode: solace:CLIENT_ACK
@@ -301,27 +261,6 @@ function init() returns error? {
 service on bridgeListener {
 
     remote function onMessage(solace:Message message, solace:Caller caller) returns error? {
-        return handleDelivery(message, caller, mockEndpoint, targetUrl, targetHeaders);
-    }
-}
-
-// Route 2, attached to the same listener (same broker connection) as route 1 - two services, one
-// Solace connection, each with its own queue subscription and http:Client.
-//
-// Both routes are declared statically like this, rather than as an arbitrary-length list built at
-// runtime, because a queue subscription is fixed by its @solace:ServiceConfig annotation, and
-// annotation values must be resolvable at compile time. A service dynamically attached at runtime
-// (`Listener.attach()`, called from `init()` with a service value built from a runtime queue name)
-// does not pick up its @solace:ServiceConfig the same way a statically-declared `service on
-// listener { ... }` does - if you need more than two routes, declare each one statically the same
-// way these two are, rather than trying to loop over a configurable list.
-@solace:ServiceConfig {
-    queueName: queueName2,
-    ackMode: solace:CLIENT_ACK
-}
-service on bridgeListener {
-
-    remote function onMessage(solace:Message message, solace:Caller caller) returns error? {
-        return handleDelivery(message, caller, mockEndpoint2, targetUrl2, targetHeaders2);
+        return handleDelivery(message, caller);
     }
 }

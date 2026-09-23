@@ -44,11 +44,6 @@ change or rebuild. See [`../../bridge/README.md`](../../bridge/README.md)'s Payl
 section for the full reference, and [`../../docs/architecture.md`](../../docs/architecture.md) for
 where this step sits in the overall delivery flow.
 
-> This sample provisions two bridge queues (`bridge-demo-queue` and `bridge-demo-queue-2`) even
-> though it only uses one; the bridge always runs two routes, and route 2 is just pointed at the
-> same target as route 1 here. See [`multi-target-routing`](../multi-target-routing/) for when
-> that second route actually does something different.
-
 ## Setup
 
 ```bash
@@ -59,13 +54,17 @@ docker compose up -d --build
 
 ## Try it
 
+Publish a message to the Solace's queue (`bridge-demo-queue`):
 ```bash
 docker exec solace-broker curl -s -X POST -H "Content-Type: application/json" \
   -H "Solace-Message-ID: W-1" \
   -d '{"workerId":"W-1","eventType":"HIRE","department":"Engineering"}' \
   http://localhost:9000/QUEUE/bridge-demo-queue
+```
 
-docker compose logs -f mock-target
+Watch the logs of the bridge and the mock target:                                                                                                                                                                                
+```bash                                                                                                                                                                                                                                   
+  docker compose logs -f bridge mock-target 
 ```
 
 Expect a log line showing the *transformed* body arriving: `employeeId`/`action` instead of

@@ -1,7 +1,7 @@
 # bridge
 
-The Ballerina service that is the actual product: it subscribes to one or more Solace queues and
-delivers each message to a configured HTTP target, replacing what a Solace REST Delivery Point
+The Ballerina service that is the actual product: it subscribes to a Solace queue and delivers
+each message to a configured HTTP target, replacing what a Solace REST Delivery Point
 (RDP) does, with the resilience RDP doesn't provide. See
 [`../docs/problem-and-solution.md`](../docs/problem-and-solution.md) for the case against RDP and
 [`../docs/architecture.md`](../docs/architecture.md) for how the pieces below fit together,
@@ -20,10 +20,8 @@ including sequence diagrams.
 - **Payload transformation**: a fixed field/header mapping and enrichment, applied before
   delivery.
 - **Prometheus-style metrics**: success/failure/circuit-open counters at `/metrics`.
-- **Two independent, config-driven routes**: a distinct queue-to-target mapping per route, each
-  reconfigurable without a rebuild.
-- **HTTP Basic and OAuth2 client-credentials auth**, per route: OAuth2 handles token acquisition,
-  caching, and transparent refresh on its own.
+- **HTTP Basic and OAuth2 client-credentials auth**: OAuth2 handles token acquisition, caching,
+  and transparent refresh on its own.
 
 Every one of these is demonstrated in isolation, with a working setup and test steps, under
 [`../samples/`](../samples/).
@@ -36,9 +34,6 @@ tables below group every key by what it controls; see
 ready to copy from. Each sample under `../samples/` ships its own `Config.toml` (or
 `docker-config.toml`, bind-mounted for a no-rebuild config edit) tuned to that sample's scenario,
 built against this same, unmodified `bridge` image.
-
-Keys are listed once, for route 1. Route 2 is configured the same way, independently, using the
-same keys with a `2` suffix (e.g. `targetUrl` / `targetUrl2`).
 
 Every key already has a default, so nothing below is required for the bridge to start, but the
 **Required** column distinguishes keys you need to set to a real value for the bridge to do

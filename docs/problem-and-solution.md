@@ -22,8 +22,6 @@ RDP ships in minutes.
   queue is what goes over the wire, verbatim.
 - **Limited auth**: whatever the RDP's own REST target configuration happens to support; no
   first-class OAuth2 client-credentials flow with token refresh.
-- **One fixed target per binding**: extending or varying behavior means broker configuration
-  changes, not a deployable, testable, versionable piece of software.
 
 None of this is a knock on RDP; it's a deliberately minimal broker feature, not an integration
 platform. The gap is what this project fills.
@@ -42,7 +40,6 @@ endpoint, closing every gap above:
 | Error logging | Broker-level, not app-diagnosable | Structured: message ID, target, status code |
 | Payload transformation | None | Field/header mapping and enrichment |
 | Auth to target | Whatever the RDP config supports | Basic, OAuth2 client-credentials (with transparent refresh) |
-| Multi-target routing | One queue, one target, fixed | Multiple independent, reconfigurable routes from one instance |
 | Setup effort | Broker config only, minutes | One more container + a config file |
 
 **The honest trade-off:** RDP wins on zero operational footprint; there's nothing extra to
@@ -67,7 +64,6 @@ setup and test instructions.
 |---|---|---|
 | Resilient delivery | Retry/backoff, circuit breaker, response-aware ack/nack, with a real RDP running side by side, hammering a failing target with no backoff, for a direct comparison | [`samples/resilient-delivery`](../samples/resilient-delivery/) |
 | Payload transformation | Field renaming and enrichment applied before delivery | [`samples/payload-transformation`](../samples/payload-transformation/) |
-| Multi-target routing | Two independent queue-to-target routes from one running bridge | [`samples/multi-target-routing`](../samples/multi-target-routing/) |
 | Basic auth | Authenticating to a target that requires HTTP Basic credentials | [`samples/basic-auth`](../samples/basic-auth/) |
 | OAuth2 client-credentials | Token acquisition, caching, and transparent refresh | [`samples/oauth2-client-credentials`](../samples/oauth2-client-credentials/) |
 | Metrics and structured logs | Observing delivery outcomes via Prometheus-style counters and correlatable logs | Config layered onto any sample; see [`bridge/README.md`](../bridge/README.md) |

@@ -10,7 +10,6 @@ names and ports.
 |---|---|
 | [`resilient-delivery`](resilient-delivery/) | Retry/backoff, circuit breaker, response-aware ack/nack, with a real RDP running side by side, hammering a failing target with no backoff, for a direct comparison |
 | [`payload-transformation`](payload-transformation/) | Field renaming and enrichment applied before delivery |
-| [`multi-target-routing`](multi-target-routing/) | Two independent queue-to-target routes from one running bridge |
 | [`basic-auth`](basic-auth/) | Authenticating to a target that requires HTTP Basic credentials |
 | [`oauth2-client-credentials`](oauth2-client-credentials/) | Token acquisition, caching, and transparent refresh |
 

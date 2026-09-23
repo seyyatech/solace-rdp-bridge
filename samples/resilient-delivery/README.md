@@ -52,11 +52,6 @@ own delivery sequence in detail, and
 [`../../docs/solace-rdp-primer.md`](../../docs/solace-rdp-primer.md) if you're new to Solace's
 RDP object model (Queue, RDP, Consumer, Queue Binding).
 
-> This sample provisions two bridge queues (`bridge-demo-queue` and `bridge-demo-queue-2`) even
-> though it only uses one; the bridge always runs two routes, and route 2 is just pointed at the
-> same target as route 1 here. See [`multi-target-routing`](../multi-target-routing/) for when
-> that second route actually does something different.
-
 ## Setup
 
 ```bash
@@ -72,7 +67,7 @@ and `restart: on-failure` retries rather than requiring a specific startup order
 
 ## Try it
 
-**RDP hammering with no backoff:**
+#### RDP hammering with no backoff:
 
 ```bash
 docker exec solace-broker curl -s -X POST -d "test payload" -H "Content-Type: text/plain" \
@@ -81,17 +76,24 @@ docker exec solace-broker curl -s -X POST -d "test payload" -H "Content-Type: te
 docker compose logs -f mock-target   # hammered with POST / and 500 responses, no pause between them
 ```
 
-**The bridge succeeding, then failing, then recovering:**
+#### The bridge succeeding, then failing, then recovering:
 
+1. baseline - succeeds
 ```bash
-# 1. baseline - succeeds
 docker exec solace-broker curl -s -X POST -H "Content-Type: application/json" \
   -H "Solace-Message-ID: W-1" -d '{"workerId":"W-1","eventType":"HIRE"}' \
   http://localhost:9000/QUEUE/bridge-demo-queue
 
 docker compose logs -f bridge   # received -> forwarding to target -> delivered -> acked
+```
 
-# 2. flip the target unhealthy, then publish a few messages in a row
+2. flip the target unhealthy, then publish a few messages in a row
+- expect: a couple of retried failures, then ballerina/http logs
+"CircuitBreaker failure threshold exceeded. 
+- Circuit tripped from CLOSE to OPEN state." -
+every delivery after that fast-fails ("circuit open, fast-failing ... requeueing") without a
+single call reaching mock-target
+```bash
 curl -s -X POST -H "Content-Type: application/json" -d '{"statusCode": 503}' http://localhost:8081/control
 
 for i in 1 2 3 4; do
@@ -101,18 +103,17 @@ for i in 1 2 3 4; do
 done
 
 docker compose logs -f bridge
-# expect: a couple of retried failures, then ballerina/http logs
-# "CircuitBreaker failure threshold exceeded. Circuit tripped from CLOSE to OPEN state." -
-# every delivery after that fast-fails ("circuit open, fast-failing ... requeueing") without a
-# single call reaching mock-target
+```
 
-# 3. flip it back healthy and wait for the circuit's resetTime (20s) to elapse
+3. flip it back healthy and wait for the circuit's resetTime (20s) to elapse
+```bash
 curl -s -X POST -H "Content-Type: application/json" -d '{}' http://localhost:8081/control
 sleep 25
 
 docker compose logs -f bridge
 # expect: "CircuitBreaker trial run was successful. Circuit switched from HALF_OPEN to CLOSE
 # state." followed by every message still queued delivering and acking cleanly
+# Wait for ~25 seconds
 ```
 
 **A bad payload (permanent rejection, no retry):**
@@ -124,6 +125,7 @@ docker exec solace-broker curl -s -X POST -H "Content-Type: application/json" \
 
 curl -s -u admin:admin http://localhost:8080/SEMP/v2/monitor/msgVpns/default/queues/bridge-demo-dmq \
   | python3 -c "import json,sys; print(json.load(sys.stdin)['data']['spooledMsgCount'])"
+# Expect: incremental value for evey run.
 ```
 
 The `Solace-DMQ-Eligible: true` header is required here: Solace's REST messaging inbound port

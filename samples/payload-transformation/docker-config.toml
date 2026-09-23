@@ -4,17 +4,10 @@ queueName = "bridge-demo-queue"
 targetUrl = "http://mock-target:8080/deliver"
 targetHeaders = { }
 
-# Route 2 mirrors route 1 - the bridge always runs two routes (see ../../bridge/README.md), and
-# this sample is about payload transformation, not multi-target routing.
-queueName2 = "bridge-demo-queue-2"
-targetUrl2 = "http://mock-target:8080/deliver"
-targetHeaders2 = { }
-
-# The transformation this sample demonstrates - shared by both routes (there's one transform
-# config, not one per route). Renames workerId -> employeeId and eventType -> action, adds source
-# as enrichment, stamps processedAt, and promotes action to the X-Event-Type header. Anything else
-# in the payload (like department, in this sample's example) passes through untouched. See
-# ../../bridge/README.md's Payload transformation section for the full reference.
+# The transformation this sample demonstrates: renames workerId -> employeeId and eventType ->
+# action, adds source as enrichment, stamps processedAt, and promotes action to the X-Event-Type
+# header. Anything else in the payload (like department, in this sample's example) passes through
+# untouched. See ../../bridge/README.md's Payload transformation section for the full reference.
 transformFieldRenames = { workerId = "employeeId", eventType = "action" }
 transformStaticFields = { source = "solace-delivery-bridge" }
 transformTimestampField = "processedAt"

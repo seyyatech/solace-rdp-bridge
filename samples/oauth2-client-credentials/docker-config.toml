@@ -6,7 +6,7 @@ targetUrl = "http://mock-target:8080/deliver"
 targetHeaders = { }
 targetOAuth2TokenUrl = "http://mock-target:8080/oauth2/token"
 targetOAuth2ClientId = "demo-client"
-targetOAuth2ClientSecret = "demo-secret2"
+targetOAuth2ClientSecret = "demo-secret"
 
 
 # Prometheus-style metrics - uncomment to expose them at :9797/metrics. See

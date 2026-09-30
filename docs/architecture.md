@@ -44,10 +44,10 @@ flowchart LR
     NACKD --> DMQ[(Dead Message Queue)]
     NACKR -.->|redelivered=true| Q
 
-    style B fill:#1f4d2e,stroke:#4caf50,stroke-width:2px,color:#ffffff
-    style L fill:#14532d,stroke:#4caf50,color:#ffffff
-    style T fill:#14532d,stroke:#4caf50,color:#ffffff
-    style HC fill:#14532d,stroke:#4caf50,color:#ffffff
+    style B fill:#F0F8FF,stroke:#002147,stroke-width:2px,color:#000000
+    style L fill:#002147,stroke:#002147,color:#ffffff
+    style T fill:#002147,stroke:#002147,color:#ffffff
+    style HC fill:#002147,stroke:#002147,color:#ffffff
 ```
 
 The bridge is a real client of the queue (`solace:Listener` in `CLIENT_ACK` mode), not a broker

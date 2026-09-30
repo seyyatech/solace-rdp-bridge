@@ -8,6 +8,8 @@ response-aware ack/nack, and payload transformation, all of it config-driven), f
 scenarios that need application-level logic: decision-making that belongs in code, not broker
 configuration.
 
+![rdp-bridge.png](docs/images/rdp-bridge.png)
+
 RDP is genuinely great for the simple case: point a queue at a URL, zero code, messages flow.
 The moment you need more than that (a target that fails intermittently and needs backoff plus a
 circuit breaker, a payload that needs reshaping, custom logic tied to your own auth flow), that
@@ -44,16 +46,6 @@ Every one of these is a working, runnable sample under [`samples/`](samples/): t
 comparison to RDP, diagrams, and exact setup/test steps.
 
 ## How it fits
-
-```mermaid
-flowchart LR
-  subgraph Outbound["Outbound: REST Delivery Point (this project's target)"]
-    direction LR
-    Q2[(Queue)] --> BROKER2((Solace Broker))
-    BROKER2 -->|"HTTP POST/PUT\n(broker is the client)"| EXT_OUT[External REST endpoint]
-  end
-```
-
 This bridge is a drop-in alternative to the outbound (RDP) side, not to REST messaging, and not
 a general-purpose iPaaS. It's a focused, single-purpose, open-source component: closer in spirit
 to a well-written microservice than to a platform, on purpose. Full architecture, including

@@ -15,13 +15,7 @@ application:
 
 ```mermaid
 flowchart LR
-    subgraph Inbound["Inbound: REST Messaging (not this project)"]
-        direction LR
-        EXT_IN[External system] -->|"HTTP POST\n(external system is the client)"| BROKER1((Solace Broker))
-        BROKER1 --> Q1[(Queue / Topic)]
-    end
-
-    subgraph Outbound["Outbound: REST Delivery Point (this project's target)"]
+    subgraph Outbound["REST Delivery Point(RDP)"]
         direction LR
         Q2[(Queue)] --> BROKER2((Solace Broker))
         BROKER2 -->|"HTTP POST/PUT\n(broker is the client)"| EXT_OUT[External REST endpoint]
